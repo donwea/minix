@@ -59,8 +59,6 @@ int fs_stat(ino_t ino_nr, struct stat *statbuf)
   /* true iff special */
   s = (mo == I_CHAR_SPECIAL || mo == I_BLOCK_SPECIAL);
 
-  statbuf->st_dev = rip->i_dev;
-  statbuf->st_ino = (ino_t) rip->i_num;
   statbuf->st_mode = (mode_t) rip->i_mode;
   statbuf->st_nlink = (nlink_t) rip->i_nlinks;
   statbuf->st_uid = rip->i_uid;
@@ -86,13 +84,13 @@ int fs_statvfs(struct statvfs *st)
 {
   struct super_block *sp;
   int scale;
-  u64_t used;
 
-  sp = get_super(fs_dev);
+  sp = &superblock;
 
   scale = sp->s_log_zone_size;
 
-  fs_blockstats(&st->f_blocks, &st->f_bfree, &used);
+  st->f_blocks = sp->s_zones;
+  st->f_bfree = sp->s_zones - used_zones;
   st->f_bavail = st->f_bfree;
 
   st->f_bsize = sp->s_block_size << scale;

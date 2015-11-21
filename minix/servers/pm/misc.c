@@ -7,6 +7,7 @@
  *   do_getepinfo: get the pid/uid/gid of a process given its endpoint
  *   do_getsetpriority: get/set process priority
  *   do_svrctl: process manager control
+ *   do_getrusage: obtain process resource usage information
  */
 
 #include "pm.h"
@@ -26,6 +27,8 @@
 #include <assert.h>
 #include "mproc.h"
 #include "kernel/proc.h"
+
+
 
 struct utsname uts_val = {
   OS_NAME,		/* system name */
@@ -400,32 +403,128 @@ int do_svrctl(void)
 	return(EINVAL);
   }
 }
+/*=================================*
+* do_mycall
+*===================================*/
+int do_mycall(void)
+{
+	printf("hello world\n");
+	return 0;
+}
+/*=======*
+* mutex_init *
+*===========*/
+int do_mutex_init()
+{
+  pthread_mutex_t *mutex;
+  pthread_mutexattr_t *mattr;
+  return pthread_mutex_init(mutex,mattr);
+}
+
+/*===========================================================================*
+*	Mutex_destroy							   *	
+*===========================================================================*/
+int do_mutex_destroy()
+{
+	printf("mutex destroy\n");
+	return 0;
+
+}
+
+/*===========================================================================*
+*	Mutex_lock						*
+*===========================================================================*/
+int do_mutex_lock()
+{
+    pthread_mutex_t *mutex;
+  	return pthread_mutex_lock(mutex);
+}
+
+// int do_mutex_lock(mutex)
+// mthread_mutex_t *mutex; /* Mutex that is to be locked */
+// {
+// /* Try to lock this mutex. If already locked, append the current thread to
+//  * FIFO queue associated with this mutex and suspend the thread. */
+
+//   struct __mthread_mutex *m;
+
+//   if (mutex == NULL)
+//     return(EINVAL);
+
+//   m = (struct __mthread_mutex *) *mutex;
+//   if (!mthread_mutex_valid(&m)) 
+//     return(EINVAL);
+//   else if (m->mm_owner == NO_THREAD) { /* Not locked */
+//   m->mm_owner = current_thread;
+//   } else if (m->mm_owner == current_thread) {
+//     return(EDEADLK);
+//   } else {
+//   mthread_queue_add(&m->mm_queue, current_thread);
+//   mthread_suspend(MS_MUTEX);
+//   }
+
+//   /* When we get here we acquired the lock. */
+//   return(0);
+// }
+
+/*===========================================================================*
+*	Mutex_unlock							  *
+*===========================================================================*/
+int do_mutex_unlock()
+{
+	printf("mutex unlock\n");
+	return 0;
+
+}
 
 /*===========================================================================*
  *				do_getrusage				     *
  *===========================================================================*/
-int do_getrusage()
+int
+do_getrusage(void)
 {
-	int res = 0;
-	clock_t user_time = 0;
-	clock_t sys_time = 0;
+	clock_t user_time, sys_time;
 	struct rusage r_usage;
-	u64_t usec;
-	if (m_in.m_lc_pm_rusage.who != RUSAGE_SELF &&
-		m_in.m_lc_pm_rusage.who != RUSAGE_CHILDREN)
-		return EINVAL;
-	if ((res = sys_getrusage(&r_usage, who_e)) < 0)
-		return res;
+	int r, children;
 
-	if (m_in.m_lc_pm_rusage.who == RUSAGE_CHILDREN) {
-		usec = mp->mp_child_utime * 1000000 / sys_hz();
-		r_usage.ru_utime.tv_sec = usec / 1000000;
-		r_usage.ru_utime.tv_usec = usec % 1000000;
-		usec = mp->mp_child_stime * 1000000 / sys_hz();
-		r_usage.ru_stime.tv_sec = usec / 1000000;
-		r_usage.ru_stime.tv_usec = usec % 1000000;
+	if (m_in.m_lc_pm_rusage.who != RUSAGE_SELF &&
+	    m_in.m_lc_pm_rusage.who != RUSAGE_CHILDREN)
+		return EINVAL;
+
+	/*
+	 * TODO: first relay the call to VFS.  As is, VFS does not have any
+	 * fields it can fill with meaningful values, but this may change in
+	 * the future.  In that case, PM would first have to use the tell_vfs()
+	 * system to get those values from VFS, and do the rest here upon
+	 * getting the response.
+	 */
+
+	memset(&r_usage, 0, sizeof(r_usage));
+
+	children = (m_in.m_lc_pm_rusage.who == RUSAGE_CHILDREN);
+
+	/*
+	 * Get system times.  For RUSAGE_SELF, get the times for the calling
+	 * process from the kernel.  For RUSAGE_CHILDREN, we already have the
+	 * values we should return right here.
+	 */
+	if (!children) {
+		if ((r = sys_times(who_e, &user_time, &sys_time, NULL,
+		    NULL)) != OK)
+			return r;
+	} else {
+		user_time = mp->mp_child_utime;
+		sys_time = mp->mp_child_stime;
 	}
 
+	/* In both cases, convert from clock ticks to microseconds. */
+	set_rusage_times(&r_usage, user_time, sys_time);
+
+	/* Get additional fields from VM. */
+	if ((r = vm_getrusage(who_e, &r_usage, children)) != OK)
+		return r;
+
+	/* Finally copy the structure to the caller. */
 	return sys_datacopy(SELF, (vir_bytes)&r_usage, who_e,
-		m_in.m_lc_pm_rusage.addr, (vir_bytes) sizeof(r_usage));
+	    m_in.m_lc_pm_rusage.addr, (vir_bytes)sizeof(r_usage));
 }

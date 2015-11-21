@@ -13,7 +13,7 @@
 /* Message type 0 is traditionally reserved. */
 #define PM_EXIT			(PM_BASE + 1)
 #define PM_FORK			(PM_BASE + 2)
-#define PM_WAITPID		(PM_BASE + 3)
+#define PM_WAIT4		(PM_BASE + 3)
 #define PM_GETPID		(PM_BASE + 4)
 #define PM_SETUID		(PM_BASE + 5)
 #define PM_GETUID		(PM_BASE + 6)
@@ -51,6 +51,7 @@
 #define PM_SVRCTL		(PM_BASE + 38)
 #define PM_SPROF		(PM_BASE + 39)
 /* PM call number 40 is currently unused. */
+#define PM_MYCALL		(PM_BASE + 40)
 #define PM_SRV_FORK		(PM_BASE + 41)
 #define PM_SRV_KILL		(PM_BASE + 42)
 #define PM_EXEC_NEW		(PM_BASE + 43)
@@ -58,8 +59,12 @@
 #define PM_GETEPINFO		(PM_BASE + 45)
 #define PM_GETPROCNR		(PM_BASE + 46)
 #define PM_GETSYSINFO		(PM_BASE + 47)
+#define PM_MUTEX_INIT		(PM_BASE + 48)
+#define PM_MUTEX_DESTROY	(PM_BASE + 49)
+#define PM_MUTEX_LOCK		(PM_BASE + 50)
+#define PM_MUTEX_UNLOCK		(PM_BASE + 51)
 
-#define NR_PM_CALLS		48	/* highest number from base plus one */
+#define NR_PM_CALLS		52	/* highest number frombaseplusone */
 
 /*===========================================================================*
  *				Calls to VFS				     *
@@ -111,7 +116,7 @@
 #define VFS_GETVFSSTAT		(VFS_BASE + 39)
 #define VFS_STATVFS1 	 	(VFS_BASE + 40)
 #define VFS_FSTATVFS1		(VFS_BASE + 41)
-#define VFS_GETRUSAGE		(VFS_BASE + 42)
+#define VFS_GETRUSAGE		(VFS_BASE + 42)		/* obsolete */
 #define VFS_SVRCTL		(VFS_BASE + 43)
 #define VFS_GCOV_FLUSH		(VFS_BASE + 44)
 #define VFS_MAPDRIVER		(VFS_BASE + 45)

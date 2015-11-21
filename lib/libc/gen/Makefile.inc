@@ -17,9 +17,8 @@ SRCS+= dhcp_gettag.c dhcp_settag.c fsversion.c gcov.c gcov_flush.c itoa.c \
 .if defined(__MINIX)
 # Unsupported by Minix.
 # 	closefrom.c confstr.c extattr.c getdevmajor.c \
-#	pthread_atfork.c setdomainname.c \
+#	pthread_atfork.c \
 #	sysctlbyname.c sysctlgetmibinfo.c sysctlnametomib.c
-#	wait3.c
 
 # To be ported
 # nlist.c nlist_aout.c nlist_coff.c nlist_ecoff.c nlist_elf32.c nlist_elf64.c
@@ -42,10 +41,11 @@ SRCS+= 	_errno.c alarm.c alphasort.c arc4random.c assert.c basename.c clock.c \
 	getusershell.c glob.c humanize_number.c initdir.c initgroups.c \
 	isascii.c isatty.c isctype.c lockf.c nftw.c \
 	nice.c \
-	opendir.c pause.c popen.c \
+	opendir.c pause.c popen.c posix_spawn_sched.c \
+	posix_spawn_fileactions.c posix_spawnp.c \
 	psignal.c \
 	ptree.c pwcache.c pw_scan.c raise.c randomid.c rb.c readdir.c \
-	rewinddir.c scandir.c seekdir.c \
+	rewinddir.c scandir.c seekdir.c setdomainname.c \
 	sethostname.c setjmperr.c setmode.c setproctitle.c setprogname.c \
 	shquote.c shquotev.c sighold.c sigignore.c siginterrupt.c \
 	siglist.c signal.c signame.c sigrelse.c \
@@ -54,7 +54,7 @@ SRCS+= 	_errno.c alarm.c alphasort.c arc4random.c assert.c basename.c clock.c \
 	syslog.c telldir.c time.c \
 	times.c toascii.c tolower_.c ttyname.c ttyslot.c toupper_.c ualarm.c \
 	ulimit.c uname.c unvis.c usleep.c utime.c utimens.c utmp.c \
-	utmpx.c valloc.c vis.c wait.c waitpid.c warn.c warnx.c \
+	utmpx.c valloc.c vis.c wait.c wait3.c waitpid.c warn.c warnx.c \
 	vwarn.c vwarnx.c verr.c verrx.c wordexp.c
 .endif
 

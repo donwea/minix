@@ -20,7 +20,6 @@
 #include <fcntl.h>
 #include <unistd.h>
 #include "file.h"
-#include "scratchpad.h"
 #include "vnode.h"
 #include "vmnt.h"
 
@@ -92,12 +91,12 @@ int actual_read_write_peek(struct fproc *rfp, int rw_flag, int io_fd,
 
   if(rw_flag == WRITING) ro = 0;
 
-  scratch(rfp).file.fd_nr = io_fd;
-  scratch(rfp).io.io_buffer = io_buf;
-  scratch(rfp).io.io_nbytes = io_nbytes;
+  rfp->fp_fd = io_fd;
+  rfp->fp_io_buffer = io_buf;
+  rfp->fp_io_nbytes = io_nbytes;
 
   locktype = rw_flag == WRITING ? VNODE_WRITE : VNODE_READ;
-  if ((f = get_filp2(rfp, scratch(rfp).file.fd_nr, locktype)) == NULL)
+  if ((f = get_filp2(rfp, rfp->fp_fd, locktype)) == NULL)
 	return(err_code);
 
   assert(f->filp_count > 0);
@@ -106,13 +105,12 @@ int actual_read_write_peek(struct fproc *rfp, int rw_flag, int io_fd,
 	unlock_filp(f);
 	return(EBADF);
   }
-  if (scratch(rfp).io.io_nbytes == 0) {
+  if (rfp->fp_io_nbytes == 0) {
 	unlock_filp(f);
 	return(0);	/* so char special files need not check for 0*/
   }
 
-  r = read_write(rfp, rw_flag, f, scratch(rfp).io.io_buffer,
-	scratch(rfp).io.io_nbytes, who_e);
+  r = read_write(rfp, rw_flag, f, rfp->fp_io_buffer, rfp->fp_io_nbytes, who_e);
 
   unlock_filp(f);
   return(r);
@@ -251,7 +249,7 @@ int read_write(struct fproc *rfp, int rw_flag, struct filp *f,
 
   if (r == EPIPE && rw_flag == WRITING) {
 	/* Process is writing, but there is no reader. Tell the kernel to
-	 * generate s SIGPIPE signal.
+	 * generate a SIGPIPE signal.
 	 */
 	if (!(f->filp_flags & O_NOSIGPIPE)) {
 		sys_kill(rfp->fp_endpoint, SIGPIPE);
@@ -274,12 +272,12 @@ int do_getdents(void)
   off_t new_pos;
   register struct filp *rfilp;
 
-  scratch(fp).file.fd_nr = job_m_in.m_lc_vfs_readwrite.fd;
-  scratch(fp).io.io_buffer = job_m_in.m_lc_vfs_readwrite.buf;
-  scratch(fp).io.io_nbytes = job_m_in.m_lc_vfs_readwrite.len;
+  fp->fp_fd = job_m_in.m_lc_vfs_readwrite.fd;
+  fp->fp_io_buffer = job_m_in.m_lc_vfs_readwrite.buf;
+  fp->fp_io_nbytes = job_m_in.m_lc_vfs_readwrite.len;
 
   /* Is the file descriptor valid? */
-  if ( (rfilp = get_filp(scratch(fp).file.fd_nr, VNODE_READ)) == NULL)
+  if ( (rfilp = get_filp(fp->fp_fd, VNODE_READ)) == NULL)
 	return(err_code);
 
   if (!(rfilp->filp_mode & R_BIT))
@@ -289,8 +287,8 @@ int do_getdents(void)
 
   if (r == OK) {
 	r = req_getdents(rfilp->filp_vno->v_fs_e, rfilp->filp_vno->v_inode_nr,
-			 rfilp->filp_pos, scratch(fp).io.io_buffer,
-			 scratch(fp).io.io_nbytes, &new_pos, 0);
+			 rfilp->filp_pos, fp->fp_io_buffer, fp->fp_io_nbytes,
+			 &new_pos, 0);
 
 	if (r > 0) rfilp->filp_pos = new_pos;
   }
@@ -326,12 +324,23 @@ size_t req_size;
 
   assert(rw_flag == READING || rw_flag == WRITING);
 
-  /* fp->fp_cum_io_partial is only nonzero when doing partial writes */
+  /* fp->fp_cum_io_partial is only nonzero when doing partial writes.
+   * We clear the field immediately here because we expect completion or error;
+   * its value must be (re)assigned if we end up suspending the write (again).
+   */
   cum_io = fp->fp_cum_io_partial;
+  fp->fp_cum_io_partial = 0;
 
   r = pipe_check(f, rw_flag, oflags, req_size, 0);
   if (r <= 0) {
-	if (r == SUSPEND) pipe_suspend(f, buf, req_size);
+	if (r == SUSPEND) {
+		fp->fp_cum_io_partial = cum_io;
+		pipe_suspend(f, buf, req_size);
+	}
+	/* If pipe_check returns an error instead of suspending the call, we
+	 * return that error, even if we are resuming a partially completed
+	 * operation (ie, a large blocking write), to match NetBSD's behavior.
+	 */
 	return(r);
   }
 
@@ -350,6 +359,7 @@ size_t req_size;
 		    buf, size, &new_pos, &cum_io_incr);
 
   if (r != OK) {
+	assert(r != SUSPEND);
 	return(r);
   }
 
@@ -366,7 +376,7 @@ size_t req_size;
 	/* partial write on pipe with */
 	/* O_NONBLOCK, return write count */
 	if (!(oflags & O_NONBLOCK)) {
-		/* partial write on pipe with req_size > PIPE_SIZE,
+		/* partial write on pipe with req_size > PIPE_BUF,
 		 * non-atomic
 		 */
 		fp->fp_cum_io_partial = cum_io;
@@ -375,7 +385,7 @@ size_t req_size;
 	}
   }
 
-  fp->fp_cum_io_partial = 0;
+  assert(fp->fp_cum_io_partial == 0);
 
   return(cum_io);
 }

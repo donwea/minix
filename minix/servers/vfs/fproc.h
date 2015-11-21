@@ -5,6 +5,7 @@
 
 #include <sys/select.h>
 #include <minix/safecopies.h>
+#include <minix/sef.h>
 
 /* This is the per-process information.  A slot is reserved for each potential
  * process. Thus NR_PROCS must be the same as in the kernel. It is not
@@ -27,9 +28,13 @@ EXTERN struct fproc {
 
   int fp_blocked_on;		/* what is it blocked on */
   int fp_block_callnr;		/* blocked call if rd/wr can't finish */
-  int  fp_cum_io_partial;	/* partial byte count if rd/wr can't finish */
+  size_t fp_cum_io_partial;	/* partial byte count if write can't finish */
   endpoint_t fp_task;		/* which task is proc suspended on */
   cp_grant_id_t fp_grant;	/* revoke this grant on unsuspend if > -1 */
+
+  int fp_fd;			/* file descriptor for blocking call */
+  vir_bytes fp_io_buffer;	/* user buffer address for ongoing I/O */
+  size_t fp_io_nbytes;		/* number of bytes left for ongoing I/O */
 
   uid_t fp_realuid;		/* real user id */
   uid_t fp_effuid;		/* effective user id */
@@ -50,9 +55,6 @@ EXTERN struct fproc {
   int fp_vp_rdlocks;		/* number of read-only locks on vnodes */
   int fp_vmnt_rdlocks;		/* number of read-only locks on vmnts */
 #endif
-
-  vir_bytes text_size;		/* text segment size of current process */
-  vir_bytes data_size;		/* data segment size of current process */
 } fproc[NR_PROCS];
 
 /* fp_flags */

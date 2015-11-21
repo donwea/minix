@@ -7,6 +7,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
+#include <stdarg.h>
 #include <stdio.h>
 #include <sys/statvfs.h>
 #include <sys/syslimits.h>
@@ -126,6 +127,24 @@ void cleanup()
   if (chdir("..") == 0 && common_test_nr != -1) rm_rf_dir(common_test_nr);
 }
 
+void fail_printf(const char *file, const char *func, int line,
+	const char *fmt, ...) {
+	va_list ap;
+	char buf[1024];
+	size_t len;
+
+	len = snprintf(buf, sizeof(buf), "[%s:%s:%d] ", file, func, line);
+
+	va_start(ap, fmt);
+	len += vsnprintf(buf + len, sizeof(buf) - len, fmt, ap);
+	va_end(ap);
+
+	snprintf(buf + len, sizeof(buf) - len, " errno=%d error=%s",
+		errno, strerror(errno));
+
+	em(line, buf);
+}
+
 void quit()
 {
   cleanup();
@@ -170,9 +189,9 @@ printprogress(char *msg, int i, int max)
         prev_time = now;
 }
 
-void getmem(u32_t *total, u32_t *free, u32_t *cached)
+void getmem(uint32_t *total, uint32_t *free, uint32_t *cached)
 {
-        u32_t pagesize, largest;
+        uint32_t pagesize, largest;
         FILE *f = fopen("/proc/meminfo", "r");
         if(!f) return;
         if(fscanf(f, "%u %u %u %u %u", &pagesize, total, free,
@@ -183,3 +202,23 @@ void getmem(u32_t *total, u32_t *free, u32_t *cached)
         fclose(f);
 }
 
+static int get_setting(const char *name, int def)
+{
+	const char *value;
+
+	value = getenv(name);
+	if (!value || !*value) return def;
+	if (strcmp(value, "yes") == 0) return 1;
+	if (strcmp(value, "no") == 0) return 0;
+
+	fprintf(stderr, "warning: invalid $%s value: %s\n", name, value);
+	return 0;
+}
+
+int get_setting_use_network(void)
+{
+	/* set $USENETWORK to "yes" or "no" to indicate whether
+	 * an internet connection is to be expected; defaults to "no"
+	 */
+	return get_setting("USENETWORK", 0);
+}

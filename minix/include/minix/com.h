@@ -28,6 +28,7 @@
  *   0x1400 - 0x14FF	Real Time Clock requests and responses
  *   0x1500 - 0x15FF	Input server messages
  *   0x1600 - 0x16FF	VirtualBox (VBOX) requests (see vboxif.h)
+ *   0x1700 - 0x17FF	PTYFS requests
  *
  * Zero and negative values are widely used for OK and error responses.
  */
@@ -259,10 +260,12 @@
 
 #  define SYS_SAFEMEMSET (KERNEL_CALL + 56)	/* sys_safememset() */
 
+
 #  define SYS_PADCONF (KERNEL_CALL + 57)	/* sys_padconf() */
 
+#  define SYS_SAMPLE (KERNEL_CALL + 58)
 /* Total */
-#define NR_SYS_CALLS	58	/* number of kernel calls */
+#define NR_SYS_CALLS	59	/* number of kernel calls */
 
 #define SYS_CALL_MASK_SIZE BITMAP_CHUNKS(NR_SYS_CALLS)
 
@@ -331,7 +334,6 @@
 #   define GET_IDLETSC	  21	/* get cumulative idle time stamp counter */
 #   define GET_CPUINFO    23    /* get information about cpus */
 #   define GET_REGS	  24	/* get general process registers */
-#   define GET_RUSAGE	  25	/* get resource usage */
 
 /* Subfunctions for SYS_PRIVCTL */
 #define SYS_PRIV_ALLOW		1	/* Allow process to run */
@@ -345,6 +347,7 @@
 #define SYS_PRIV_QUERY_MEM	8	/* Verify memory privilege. */
 #define SYS_PRIV_UPDATE_SYS	9	/* Update a sys privilege structure. */
 #define SYS_PRIV_YIELD	       10	/* Allow process to run and suspend */
+#define SYS_PRIV_CLEAR_IPC_REFS 11	/* Clear pending IPC for the process */
 
 /* Constants for exec. FIXME: these do not belong here. */
 #define PMEF_AUXVECTORS	20
@@ -428,9 +431,16 @@
 /* Field names for SYS_UPDATE. */
 #define SYS_UPD_SRC_ENDPT	m1_i1	/* source endpoint */
 #define SYS_UPD_DST_ENDPT	m1_i2	/* destination endpoint */
+#define SYS_UPD_FLAGS		m1_i3	/* update flags */
+#  define SYS_UPD_ROLLBACK        0x1	/* update is rollback */
+
 
 /* Subfunctions for SYS_STATECTL */
 #define SYS_STATE_CLEAR_IPC_REFS    1	/* clear IPC references */
+#define SYS_STATE_SET_STATE_TABLE   2	/* set state map */
+#define SYS_STATE_ADD_IPC_BL_FILTER 3	/* set IPC blacklist filter */
+#define SYS_STATE_ADD_IPC_WL_FILTER 4	/* set IPC whitelist filter */
+#define SYS_STATE_CLEAR_IPC_FILTERS 5	/* clear IPC filters */
 
 /* Subfunctions for SYS_SCHEDCTL */
 #  define SCHEDCTL_FLAG_KERNEL	1	/* mark kernel scheduler and remove 
@@ -456,7 +466,7 @@
 #define RS_SHUTDOWN	(RS_RQ_BASE + 4)	/* alert about shutdown */
 #define RS_UPDATE	(RS_RQ_BASE + 5)	/* update system service */
 #define RS_CLONE	(RS_RQ_BASE + 6)	/* clone system service */
-#define RS_EDIT		(RS_RQ_BASE + 7)	/* edit system service */
+#define RS_UNCLONE	(RS_RQ_BASE + 7)	/* unclone system service */
 
 #define RS_LOOKUP	(RS_RQ_BASE + 8)	/* lookup server name */
 
@@ -464,6 +474,19 @@
 
 #define RS_INIT 	(RS_RQ_BASE + 20)	/* service init message */
 #define RS_LU_PREPARE	(RS_RQ_BASE + 21)	/* prepare to update message */
+#define RS_EDIT		(RS_RQ_BASE + 22)	/* edit system service */
+#define RS_SYSCTL	(RS_RQ_BASE + 23)	/* perform system ctl action */
+#define RS_FI		(RS_RQ_BASE + 24)	/* inject fault into service */
+
+/* Subfunctions for RS_SYSCTL. */
+#define RS_SYSCTL_SRV_STATUS    1
+#define RS_SYSCTL_UPD_START     2
+#define RS_SYSCTL_UPD_RUN       3
+#define RS_SYSCTL_UPD_STOP      4
+#define RS_SYSCTL_UPD_STATUS    5
+
+/* Subfunctions for RS_FI. */
+#define RS_FI_CRASH             1
 
 /*===========================================================================*
  *                Messages for the Data Store Server			     *
@@ -642,8 +665,11 @@
 /* To VM: identify cache block in FS */
 #define VM_SETCACHEPAGE		(VM_RQ_BASE+27)
 
+/* To VM: forget cache block in FS */
+#define VM_FORGETCACHEPAGE	(VM_RQ_BASE+28)
+
 /* To VM: clear all cache blocks for a device */
-#define VM_CLEARCACHE		(VM_RQ_BASE+28)
+#define VM_CLEARCACHE		(VM_RQ_BASE+29)
 
 /* To VFS: fields for request from VM. */
 #	define VFS_VMCALL_REQ		m10_i1
@@ -701,6 +727,11 @@
 #	define VM_RS_CTL_REQ		m1_i2
 #		define VM_RS_MEM_PIN	    0	/* pin memory */
 #		define VM_RS_MEM_MAKE_VM    1	/* make VM instance */
+#		define VM_RS_MEM_HEAP_PREALLOC 2 /* preallocate heap regions */
+#		define VM_RS_MEM_MAP_PREALLOC  3 /* preallocate mmaped regions */
+#		define VM_RS_MEM_GET_PREALLOC_MAP  4 /* get preallocated mmaped regions */
+#	define VM_RS_CTL_ADDR		m2_p1
+#	define VM_RS_CTL_LEN		m2_i3
 
 #define VM_WATCH_EXIT		(VM_RQ_BASE+43)
 
@@ -721,8 +752,10 @@
 
 #define VM_GETRUSAGE		(VM_RQ_BASE+47)
 
+#define VM_RS_PREPARE		(VM_RQ_BASE+48)
+
 /* Total. */
-#define NR_VM_CALLS				48
+#define NR_VM_CALLS				49
 #define VM_CALL_MASK_SIZE			BITMAP_CHUNKS(NR_VM_CALLS)
 
 /* not handled as a normal VM call, thus at the end of the reserved rage */
@@ -733,7 +766,7 @@
 /* Basic vm calls allowed to every process. */
 #define VM_BASIC_CALLS \
     VM_BRK, VM_MMAP, VM_MUNMAP, VM_MAP_PHYS, VM_UNMAP_PHYS, VM_INFO, \
-    VM_GETRUSAGE
+    VM_GETRUSAGE /* VM_GETRUSAGE is to be removed from this list ASAP */
 
 /*===========================================================================*
  *                Messages for IPC server				     *
@@ -847,6 +880,16 @@
 #define INPUT_SETLEDS		(INPUT_RQ_BASE + 1)	/* set keyboard LEDs */
 
 #define INPUT_EVENT		(INPUT_RS_BASE + 0)	/* send input event */
+
+/*===========================================================================*
+ *			Messages for PTYFS				     *
+ *===========================================================================*/
+
+#define PTYFS_BASE 0x1700
+
+#define PTYFS_SET		(PTYFS_BASE + 0)	/* add/update node */
+#define PTYFS_CLEAR		(PTYFS_BASE + 1)	/* delete node */
+#define PTYFS_NAME		(PTYFS_BASE + 2)	/* get node name */
 
 /*===========================================================================*
  *			VFS-FS TRANSACTION IDs				     *

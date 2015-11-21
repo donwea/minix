@@ -117,11 +117,11 @@ SUBDIR += .WAIT texinfo \
 	${DTRACE_BITS} \
 		 cat cksum \
 		file \
+		makefs .WAIT \
 		.WAIT \
 		.WAIT \
 		.WAIT \
-		.WAIT \
-		.WAIT \
+		.WAIT installboot \
 		pwd_mkdb stat strfile zic
 .endif
 .if defined(__MINIX)

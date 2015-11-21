@@ -15,7 +15,7 @@ SUBDIR= \
 	\
 	\
 	link \
-	\
+	makefs \
 	mtree \
 	\
 	\
@@ -24,9 +24,9 @@ SUBDIR= \
 	\
 	rdate \
 	\
+	\
+	syslogd \
 	traceroute \
-	\
-	\
 	unlink user \
 	vipw vnconfig \
 	\
@@ -60,11 +60,11 @@ SUBDIR+=mld6query route6d rtadvd traceroute6
 .if !defined(__MINIX)
 # ATM PVC
 SUBDIR+=pvcsif pvctxctl
-.endif
 
 .if (${MKCRYPTO} != "no")
 SUBDIR+= racoon racoonctl
 .endif
+.endif # !defined(__MINIX)
 
 # NPF
 .if (${MKNPF} != "no")

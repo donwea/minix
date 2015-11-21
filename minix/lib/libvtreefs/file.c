@@ -90,7 +90,7 @@ fs_read(ino_t ino_nr, struct fsdriver_data * data, size_t bytes,
 		 * return a partial result.  Otherwise return the error.
 		 */
 		if (r < 0)
-			return (off > 0) ? off : r;
+			return (off > 0) ? (ssize_t)off : r;
 
 		off += len;
 		pos += len;
@@ -151,7 +151,7 @@ fs_write(ino_t ino_nr, struct fsdriver_data * data, size_t bytes, off_t pos,
 		 * return a partial result.  Otherwise return the error.
 		 */
 		if (r < 0)
-			return (off > 0) ? off : r;
+			return (off > 0) ? (ssize_t)off : r;
 
 		off += r;
 		pos += r;
@@ -223,7 +223,7 @@ fs_getdents(ino_t ino_nr, struct fsdriver_data * data, size_t bytes,
 
 	fsdriver_dentry_init(&fsdentry, data, bytes, buf, bufsize);
 
-	do {
+	for (;;) {
 		/* Determine which inode and name to use for this entry. */
 		pos = (*posp)++;
 
@@ -287,7 +287,9 @@ fs_getdents(ino_t ino_nr, struct fsdriver_data * data, size_t bytes,
 		    IFTODT(child->i_stat.mode));
 		if (r < 0)
 			return r;
-	} while (r > 0);
+		if (r == 0)
+			break;
+	}
 
 	return fsdriver_dentry_finish(&fsdentry);
 }

@@ -96,7 +96,7 @@ struct proc {
 #define VMSTYPE_MAP		3
 
 	int		type;		/* suspended operation */
-	union {
+	union ixfer_saved{
 		/* VMSTYPE_SYS_MESSAGE */
 		message		reqmsg;	/* suspended request message */
 	} saved;
@@ -104,7 +104,7 @@ struct proc {
 	/* Parameters of request to VM */
 	int		req_type;
 	endpoint_t	target;
-	union {
+	union ixfer_params{
 		struct {
 			vir_bytes 	start, length;	/* memory range */
 			u8_t		writeflag;	/* nonzero for write access */
@@ -125,8 +125,6 @@ struct proc {
    * do_ipc() arguments that are still to be executed
    */
   struct { reg_t r1, r2, r3; } p_defer;
-
-  u64_t p_signal_received;
 
 #if DEBUG_TRACE
   int p_schedules;
@@ -255,6 +253,7 @@ struct proc {
 				    because of VM modifying the sender's address
 				    space*/
 #define MF_STEP		 0x40000 /* Single-step process */
+#define MF_MSGFAILED	 0x80000
 
 /* Magic process table addresses. */
 #define BEG_PROC_ADDR (&proc[0])

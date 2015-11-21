@@ -9,18 +9,12 @@ SRCS=	buf.c clock.c inet.c inet_config.c \
 	tcp_recv.c tcp_send.c ip_eth.c \
 	ip_ps.c psip.c \
 	queryparam.c version.c
+MAN=	inet.8
 
 .PATH:	${.CURDIR}/generic
 
-WARNS=
-
-NOCLANGERROR=yes
-
 DPADD+=	${LIBCHARDRIVER} ${LIBSYS}
 LDADD+=	-lchardriver -lsys
-
-DPADD+= ${LIBC}
-LDADD+= -lc
 
 CPPFLAGS+=  -I${.CURDIR} -D'ARGS(a)=a'
 

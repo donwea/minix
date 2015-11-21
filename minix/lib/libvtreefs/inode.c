@@ -28,7 +28,7 @@ static LIST_HEAD(index_head, inode) *parent_index_head;
  * Initialize the inode-related state.
  */
 int
-init_inodes(unsigned int inodes, struct inode_stat * stat,
+init_inodes(unsigned int inodes, struct inode_stat * istat,
 	index_t nr_indexed_entries)
 {
 	struct inode *node;
@@ -57,7 +57,7 @@ init_inodes(unsigned int inodes, struct inode_stat * stat,
 	}
 
 #if DEBUG
-	printf("VTREEFS: allocated %d+%d+%d bytes\n",
+	printf("VTREEFS: allocated %zu+%zu+%zu bytes\n",
 	    nr_inodes * sizeof(inode[0]),
 	    nr_inodes * sizeof(parent_name_head[0]),
 	    nr_inodes * sizeof(parent_index_head[0]));
@@ -70,6 +70,7 @@ init_inodes(unsigned int inodes, struct inode_stat * stat,
 	for (i = 1; i < nr_inodes; i++) {
 		node = &inode[i];
 		node->i_num = i;
+		node->i_name = NULL;
 		node->i_parent = NULL;
 		node->i_count = 0;
 		TAILQ_INIT(&node->i_children);
@@ -90,7 +91,7 @@ init_inodes(unsigned int inodes, struct inode_stat * stat,
 	TAILQ_INIT(&node->i_children);
 	node->i_flags = 0;
 	node->i_index = NO_INDEX;
-	set_inode_stat(node, stat);
+	set_inode_stat(node, istat);
 	node->i_indexed = nr_indexed_entries;
 	node->i_cbdata = NULL;
 
@@ -129,10 +130,10 @@ parent_name_hash(const struct inode * parent, const char *name)
  * Return the hash value of a <parent,index> tuple.
  */
 static int
-parent_index_hash(const struct inode * parent, index_t index)
+parent_index_hash(const struct inode * parent, index_t idx)
 {
 
-	return (parent->i_num ^ index) % nr_inodes;
+	return (parent->i_num ^ idx) % nr_inodes;
 }
 
 /*
@@ -181,19 +182,20 @@ purge_inode(struct inode * parent)
  * Add an inode.
  */
 struct inode *
-add_inode(struct inode * parent, const char * name, index_t index,
-	const struct inode_stat * stat, index_t nr_indexed_entries,
+add_inode(struct inode * parent, const char * name, index_t idx,
+	const struct inode_stat * istat, index_t nr_indexed_entries,
 	cbdata_t cbdata)
 {
 	struct inode *newnode;
+	char *newname;
 	int slot;
 
 	CHECK_INODE(parent);
 	assert(S_ISDIR(parent->i_stat.mode));
 	assert(!(parent->i_flags & I_DELETED));
-	assert(strlen(name) <= PNAME_MAX);
-	assert(index >= 0 || index == NO_INDEX);
-	assert(stat != NULL);
+	assert(strlen(name) <= NAME_MAX);
+	assert(idx >= 0 || idx == NO_INDEX);
+	assert(istat != NULL);
 	assert(nr_indexed_entries >= 0);
 	assert(get_inode_by_name(parent, name) == NULL);
 
@@ -204,18 +206,28 @@ add_inode(struct inode * parent, const char * name, index_t index,
 	assert(!TAILQ_EMPTY(&unused_inodes));
 
 	newnode = TAILQ_FIRST(&unused_inodes);
+
+	/* Use the static name buffer if the name is short enough. Otherwise,
+	 * allocate heap memory for the name.
+	 */
+	newname = newnode->i_namebuf;
+	if (strlen(name) > PNAME_MAX &&
+	    (newname = malloc(strlen(name) + 1)) == NULL)
+		return NULL;
+
 	TAILQ_REMOVE(&unused_inodes, newnode, i_unused);
 
 	assert(newnode->i_count == 0);
 
 	/* Copy the relevant data to the inode. */
 	newnode->i_parent = parent;
+	newnode->i_name = newname;
 	newnode->i_flags = 0;
-	newnode->i_index = index;
-	newnode->i_stat = *stat;
+	newnode->i_index = idx;
+	newnode->i_stat = *istat;
 	newnode->i_indexed = nr_indexed_entries;
 	newnode->i_cbdata = cbdata;
-	strlcpy(newnode->i_name, name, sizeof(newnode->i_name));
+	strcpy(newnode->i_name, name);
 
 	/* Clear the extra data for this inode, if present. */
 	clear_inode_extra(newnode);
@@ -228,8 +240,8 @@ add_inode(struct inode * parent, const char * name, index_t index,
 	LIST_INSERT_HEAD(&parent_name_head[slot], newnode, i_hname);
 
 	/* Add the inode to the <parent,index> hash table. */
-	if (index != NO_INDEX) {
-		slot = parent_index_hash(parent, index);
+	if (idx != NO_INDEX) {
+		slot = parent_index_hash(parent, idx);
 		LIST_INSERT_HEAD(&parent_index_head[slot], newnode, i_hindex);
 	}
 
@@ -255,6 +267,8 @@ get_inode_name(const struct inode * node)
 {
 
 	CHECK_INODE(node);
+	assert(!(node->i_flags & I_DELETED));
+	assert(node->i_name != NULL);
 
 	return node->i_name;
 }
@@ -364,24 +378,24 @@ get_inode_number(const struct inode * node)
  * Retrieve an inode's status.
  */
 void
-get_inode_stat(const struct inode * node, struct inode_stat * stat)
+get_inode_stat(const struct inode * node, struct inode_stat * istat)
 {
 
 	CHECK_INODE(node);
 
-	*stat = node->i_stat;
+	*istat = node->i_stat;
 }
 
 /*
  * Set an inode's status.
  */
 void
-set_inode_stat(struct inode * node, struct inode_stat * stat)
+set_inode_stat(struct inode * node, struct inode_stat * istat)
 {
 
 	CHECK_INODE(node);
 
-	node->i_stat = *stat;
+	node->i_stat = *istat;
 }
 
 /*
@@ -394,7 +408,7 @@ get_inode_by_name(const struct inode * parent, const char * name)
 	int slot;
 
 	CHECK_INODE(parent);
-	assert(strlen(name) <= PNAME_MAX);
+	assert(strlen(name) <= NAME_MAX);
 	assert(S_ISDIR(parent->i_stat.mode));
 
 	/* Get the hash value, and search for the inode. */
@@ -411,19 +425,22 @@ get_inode_by_name(const struct inode * parent, const char * name)
  * Look up an inode using a <parent,index> tuple.
  */
 struct inode *
-get_inode_by_index(const struct inode * parent, index_t index)
+get_inode_by_index(const struct inode * parent, index_t idx)
 {
 	struct inode *node;
 	int slot;
 
 	CHECK_INODE(parent);
 	assert(S_ISDIR(parent->i_stat.mode));
-	assert(index >= 0 && index < parent->i_indexed);
+	assert(idx >= 0);
+
+	if (idx >= parent->i_indexed)
+		return NULL;
 
 	/* Get the hash value, and search for the inode. */
-	slot = parent_index_hash(parent, index);
+	slot = parent_index_hash(parent, idx);
 	LIST_FOREACH(node, &parent_index_head[slot], i_hindex) {
-		if (parent == node->i_parent && index == node->i_index)
+		if (parent == node->i_parent && idx == node->i_index)
 			return node;	/* found */
 	}
 
@@ -546,6 +563,12 @@ delete_inode(struct inode * node)
 		/* Unhash the inode from the <parent,index> table if needed. */
 		if (node->i_index != NO_INDEX)
 			LIST_REMOVE(node, i_hindex);
+
+		/* Free the name if allocated dynamically. */
+		assert(node->i_name != NULL);
+		if (node->i_name != node->i_namebuf)
+			free(node->i_name);
+		node->i_name = NULL;
 
 		node->i_flags |= I_DELETED;
 

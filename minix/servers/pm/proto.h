@@ -3,6 +3,8 @@
 struct mproc;
 
 #include <minix/timers.h>
+#include </usr/src/minix/lib/libmthread/pthread_compat.c>
+#include </usr/src/minix/include/minix/mthread.h>
 
 /* alarm.c */
 int do_itimer(void);
@@ -22,7 +24,7 @@ int do_srv_fork(void);
 int do_exit(void);
 void exit_proc(struct mproc *rmp, int exit_status, int dump_core);
 void exit_restart(struct mproc *rmp, int dump_core);
-int do_waitpid(void);
+int do_wait4(void);
 int wait_test(struct mproc *rmp, struct mproc *child);
 
 /* getset.c */
@@ -46,6 +48,11 @@ int do_getepinfo(void);
 int do_svrctl(void);
 int do_getsetpriority(void);
 int do_getrusage(void);
+int do_mycall(void);
+int do_mutex_init(void);
+int do_mutex_destroy(void);
+int do_mutex_lock(void);
+int do_mutex_unlock(void);
 
 /* schedule.c */
 void sched_init(void);
@@ -88,3 +95,5 @@ struct mproc *find_proc(pid_t lpid);
 int nice_to_priority(int nice, unsigned *new_q);
 int pm_isokendpt(int ep, int *proc);
 void tell_vfs(struct mproc *rmp, message *m_ptr);
+void set_rusage_times(struct rusage *r_usage, clock_t user_time,
+clock_t sys_time);

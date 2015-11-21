@@ -17,6 +17,7 @@
 ./boot/minix
 ./boot/minix_default
 ./dev
+./dev/pts
 ./etc
 ./etc/X11
 ./etc/X11/fs
@@ -53,12 +54,6 @@
 ./usr/adm/old
 ./usr/bin
 ./usr/etc
-./usr/benchmarks
-./usr/benchmarks/unixbench
-./usr/benchmarks/unixbench/pgms
-./usr/benchmarks/unixbench/tmp
-./usr/benchmarks/unixbench/testdir
-./usr/benchmarks/unixbench/results
 ./usr/games
 ./usr/games/hide	gname=games mode=0750
 ./usr/include
@@ -82,6 +77,8 @@
 ./usr/include/msdosfs
 ./usr/include/net
 ./usr/include/net/gen
+./usr/include/netpgp
+./usr/include/openssl
 ./usr/include/ppath
 ./usr/include/prop
 ./usr/include/protocols
@@ -110,7 +107,6 @@
 ./usr/log
 ./usr/man
 ./usr/man/man1
-./usr/man/man1x
 ./usr/man/man2
 ./usr/man/man3
 ./usr/man/man4
@@ -126,6 +122,8 @@
 ./usr/preserve
 ./usr/run
 ./usr/sbin
+./usr/service
+./usr/service/asr
 ./usr/share
 ./usr/share/calendar
 ./usr/share/doc
@@ -135,7 +133,12 @@
 ./usr/share/doc/psd/19.curses
 ./usr/share/doc/usd
 ./usr/share/doc/usd/03.shell
+./usr/share/doc/usd/04.csh
+./usr/share/doc/usd/30.rogue
 ./usr/share/examples
+./usr/share/examples/libsaslc
+./usr/share/examples/libsaslc/mech
+./usr/share/examples/openssl
 ./usr/share/examples/tmux
 ./usr/share/info
 ./usr/share/games

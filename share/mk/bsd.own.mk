@@ -38,7 +38,6 @@ MKCOVERAGE?=	no
 # LSC MINIX does not support these features ATM.
 USE_FORT:=	no
 USE_SSP:=	no
-MKCRYPTO:=	no
 MKGDB:=		no
 MKGROFF:=	no
 MKHESIOD:=	no
@@ -72,10 +71,7 @@ OPTFLAGS?=	-disable-opt \
 		-disable-internalize -disable-inlining \
 		-load ${WEAKALIASOVERRIDEPASS} -weak-alias-module-override
 
-# Whitout -Wl,--no-ctors-in-init-array, golds moves the constructors out of
-# .ctors into .init_array, which is bad on intel.
 BITCODE_LD_FLAGS_1ST?= \
-		-Wl,--no-ctors-in-init-array \
 		-Wl,-plugin=${GOLD_PLUGIN} \
 		-Wl,-plugin-opt=-disable-opt \
 		-Wl,-plugin-opt=-disable-inlining
@@ -123,11 +119,16 @@ USETOOLS?=	never
        MACHINE:= i386
 .    endif
 # LSC FIXME: On a native ARM system MACHINE_ARCH is earmv7 instead of earm...
-.    if !empty(${MACHINE_ARCH:Mearm*})
+.    if !empty(MACHINE_ARCH:Mearm*)
        MACHINE_ARCH:= earm
 .    endif
 .  endif # !defined(HOSTPROG) && !defined(HOSTLIB)
 .endif # __uname_s == "Minix"
+
+# LSC FIXME: RELEASEMACHINEDIR is set to evbarm, instead of evbearm-el
+.if !empty(MACHINE:Mevbarm*)
+RELEASEMACHINEDIR:= evbearm-el
+.endif
 
 .if ${HAVE_GCC:Dyes} == "yes" || \
     (${MKGCCCMDS:Uno} == "yes" && ${MKLLVM:Uyes} == "no")
@@ -980,10 +981,15 @@ MACHINE_GNU_PLATFORM:=${MACHINE_GNU_ARCH}-elf32-minix
    _HAVE_GOLD!= (exec 2>&1; ${LD} --version || echo "")
    _GOLD_MATCH:=${_HAVE_GOLD:Mgold}
    _HAVE_GOLD:= ${_HAVE_GOLD:M[0-9]\.[0-9][0-9]}
+
 .  if ${_GOLD_MATCH} != "" && ${_HAVE_GOLD} != ""
       HAVE_GOLD?= ${_HAVE_GOLD}
 #     CFLAGS+= -DHAVE_GOLD=${_HAVE_GOLD}
 #     AFLAGS+= -DHAVE_GOLD=${_HAVE_GOLD}
+
+# Without -Wl,--no-ctors-in-init-array, gold moves the constructors out of
+# .ctors into .init_array, which is bad on intel.
+      LDFLAGS+= -Wl,--no-ctors-in-init-array
 .  else
       USE_BITCODE:=no
 .  endif

@@ -47,9 +47,9 @@ int sys_schedctl(unsigned flags, endpoint_t proc_ep, int priority, int
 #define sys_delay_stop(proc_ep) sys_runctl(proc_ep, RC_STOP, RC_DELAY)
 #define sys_resume(proc_ep) sys_runctl(proc_ep, RC_RESUME, 0)
 int sys_runctl(endpoint_t proc_ep, int action, int flags);
-
-int sys_update(endpoint_t src_ep, endpoint_t dst_ep);
-int sys_statectl(int request);
+int sys_sample(int mode);
+int sys_update(endpoint_t src_ep, endpoint_t dst_ep, int flags);
+int sys_statectl(int request, void* address, int length);
 int sys_privctl(endpoint_t proc_ep, int req, void *p);
 int sys_privquery_mem(endpoint_t proc_ep, phys_bytes physstart,
 	phys_bytes physlen);
@@ -107,7 +107,11 @@ int free_contig(void *addr, size_t len);
  */
 int sys_times(endpoint_t proc_ep, clock_t *user_time, clock_t *sys_time,
 	clock_t *uptime, time_t *boottime);
-int sys_setalarm(clock_t exp_time, int abs_time);
+
+#define sys_setalarm(exp, abs) sys_setalarm2(exp, abs, NULL, NULL)
+int sys_setalarm2(clock_t exp_time, int abs_time, clock_t *time_left,
+	clock_t *uptime);
+
 int sys_vtimer(endpoint_t proc_nr, int which, clock_t *newval, clock_t
 	*oldval);
 
@@ -186,11 +190,10 @@ int sys_diagctl(int ctl, char *arg1, int arg2);
 #define sys_getpriv(dst, nr)	sys_getinfo(GET_PRIV, dst, 0,0, nr)
 #define sys_getidletsc(dst)	sys_getinfo(GET_IDLETSC, dst, 0,0,0)
 #define sys_getregs(dst,nr)	sys_getinfo(GET_REGS, dst, 0,0, nr)
-#define sys_getrusage(dst, nr)  sys_getinfo(GET_RUSAGE, dst, 0,0, nr)
 int sys_getinfo(int request, void *val_ptr, int val_len, void *val_ptr2,
 	int val_len2);
 int sys_whoami(endpoint_t *ep, char *name, int namelen, int
-	*priv_flags);
+	*priv_flags, int* init_flags);
 
 /* Signal control. */
 int sys_kill(endpoint_t proc_ep, int sig);

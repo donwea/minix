@@ -2,9 +2,13 @@
 
 #include "inc.h"
 
-struct proc proc[NR_PROCS + NR_TASKS];
-struct mproc mproc[NR_PROCS];
-struct fproc fproc[NR_PROCS];
+typedef struct proc ixfer_proc_t;
+typedef struct fproc ixfer_fproc_t;
+typedef struct mproc ixfer_mproc_t;
+
+ixfer_proc_t proc[NR_PROCS + NR_TASKS];
+ixfer_mproc_t mproc[NR_PROCS];
+ixfer_fproc_t fproc[NR_PROCS];
 
 static int nr_pid_entries;
 
@@ -422,14 +426,12 @@ lookup_hook(struct inode * parent, char * name, cbdata_t __unused cbdata)
 {
 	static clock_t last_update = 0;
 	clock_t now;
-	int r;
 
 	/*
 	 * Update lazily for lookups, as this gets too expensive otherwise.
 	 * Alternative: pull in only PM's table?
 	 */
-	if ((r = getticks(&now)) != OK)
-		panic("unable to get uptime: %d", r);
+	now = getticks();
 
 	if (last_update != now) {
 		update_tables();

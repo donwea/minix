@@ -275,7 +275,8 @@ CONFIGSYMLINKS+=	${TZDIR}/${LOCALTIME}	/etc/localtime \
 CONFIGSYMLINKS+=	\
 			/usr/log		/var/log \
 			/usr/tmp		/var/tmp \
-			/proc/mounts		/etc/mtab
+			/proc/mounts		/etc/mtab \
+			/usr/service/asr	/service/asr
 
 .endif # !defined(__MINIX)
 
@@ -355,7 +356,11 @@ install-etc-files-safe: .PHONY .MAKE check_DESTDIR MAKEDEV
 	${ETC_INSTALL_OBJ_FILE} -o ${BINOWN} -g ${BINGRP} -m 555 \
 	    MAKEDEV ${DESTDIR}/dev
 .else
+# As /var/log is a symlink to /usr/log, we need to use /usr/log for files
+# in /var/log here.  The same applies to the distrib list entries.
 .for owner group mode file in \
+		${BINOWN} ${BINGRP}	644	/usr/log/messages \
+		${BINOWN} ${BINGRP}	644	/usr/log/syslog \
 		games games		664	/var/games/tetris.scores
 	${_MKMSG_INSTALL} ${DESTDIR}${file}
 	if [ ! -e ${DESTDIR}${file} -o -s ${DESTDIR}${file} ]; then \
@@ -467,7 +472,7 @@ OBSOLETE.dir=		${.OBJDIR}/obsolete.dir
 .if !defined(__MINIX)
 OBSOLETE.files=		base comp etc games man misc text
 .else
-OBSOLETE.files=		minix
+OBSOLETE.files=		minix-base minix-comp minix-games minix-kernel minix-man minix-tests
 .endif # !defined(__MINIX)
 .if ${MKDEBUG} != "no"
 OBSOLETE.files+=	debug

@@ -289,7 +289,8 @@ _ASSERT_MSG_SIZE(mess_krn_lsys_sys_fork);
 typedef struct {
 	endpoint_t endpt;
 	int privflags;
-	char name[48];
+	int initflags;
+	char name[44];
 
 } mess_krn_lsys_sys_getwhoami;
 _ASSERT_MSG_SIZE(mess_krn_lsys_sys_getwhoami);
@@ -304,11 +305,11 @@ _ASSERT_MSG_SIZE(mess_krn_lsys_sys_irqctl);
 typedef struct {
 	clock_t real_ticks;
 	clock_t boot_ticks;
-	clock_t boot_time;
 	clock_t user_time;
 	clock_t system_time;
+	time_t boot_time;
 
-	uint8_t padding[36];
+	uint8_t padding[32];
 } mess_krn_lsys_sys_times;
 _ASSERT_MSG_SIZE(mess_krn_lsys_sys_times);
 
@@ -572,10 +573,11 @@ _ASSERT_MSG_SIZE(mess_lc_pm_time);
 typedef struct {
 	pid_t pid;
 	int options;
+	vir_bytes addr;			/* struct rusage * */
 
-	uint8_t padding[48];
-} mess_lc_pm_waitpid;
-_ASSERT_MSG_SIZE(mess_lc_pm_waitpid);
+	uint8_t padding[44];
+} mess_lc_pm_wait4;
+_ASSERT_MSG_SIZE(mess_lc_pm_wait4);
 
 typedef struct {
 	cp_grant_id_t grant;
@@ -774,13 +776,6 @@ typedef struct {
 _ASSERT_MSG_SIZE(mess_lc_vfs_readwrite);
 
 typedef struct {
-	vir_bytes addr;
-
-	uint8_t padding[52];
-} mess_lc_vfs_rusage;
-_ASSERT_MSG_SIZE(mess_lc_vfs_rusage);
-
-typedef struct {
 	uint32_t nfds;
 	fd_set *readfds;
 	fd_set *writefds;
@@ -854,13 +849,6 @@ typedef struct {
 _ASSERT_MSG_SIZE(mess_lc_vm_getphys);
 
 typedef struct {
-	vir_bytes addr;
-
-	uint8_t padding[52];
-} mess_lc_vm_rusage;
-_ASSERT_MSG_SIZE(mess_lc_vm_rusage);
-
-typedef struct {
 	endpoint_t	forwhom;
 	void		*addr;
 	uint8_t		padding[48];
@@ -930,8 +918,9 @@ _ASSERT_MSG_SIZE(mess_linputdriver_input_event);
 typedef struct {
         cp_grant_id_t gid;
 	size_t size;
+	int subtype;
 
-        uint8_t padding[48];
+        uint8_t padding[44];
 } mess_lsys_fi_ctl;
 _ASSERT_MSG_SIZE(mess_lsys_fi_ctl);
 
@@ -1129,9 +1118,10 @@ _ASSERT_MSG_SIZE(mess_lsys_krn_sys_sdevio);
 typedef struct {
 	clock_t exp_time;
 	clock_t time_left;
+	clock_t uptime;
 	int abs_time;
 
-	uint8_t padding[44];
+	uint8_t padding[40];
 } mess_lsys_krn_sys_setalarm;
 _ASSERT_MSG_SIZE(mess_lsys_krn_sys_setalarm);
 
@@ -1176,8 +1166,10 @@ _ASSERT_MSG_SIZE(mess_lsys_krn_sys_sprof);
 
 typedef struct {
 	int request;
+	void *address;
+	int length;
 
-	uint8_t padding[52];
+	uint8_t padding[44];
 } mess_lsys_krn_sys_statectl;
 _ASSERT_MSG_SIZE(mess_lsys_krn_sys_statectl);
 
@@ -1364,6 +1356,15 @@ typedef struct {
 _ASSERT_MSG_SIZE(mess_lsys_vm_query_exit);
 
 typedef struct {
+	endpoint_t	endpt;
+	vir_bytes	addr;
+	int		children;
+
+	uint8_t		padding[44];
+} mess_lsys_vm_rusage;
+_ASSERT_MSG_SIZE(mess_lsys_vm_rusage);
+
+typedef struct {
 	endpoint_t	ep;
 	void		*vaddr;
 	uint8_t		padding[48];
@@ -1373,7 +1374,8 @@ _ASSERT_MSG_SIZE(mess_lsys_vm_unmap_phys);
 typedef struct {
 	endpoint_t src;
 	endpoint_t dst;
-	uint8_t		padding[48];
+	int flags;
+	uint8_t		padding[44];
 } mess_lsys_vm_update;
 _ASSERT_MSG_SIZE(mess_lsys_vm_update);
 
@@ -1518,8 +1520,8 @@ typedef struct {
 	int status;
 
 	uint8_t padding[52];
-} mess_pm_lc_waitpid;
-_ASSERT_MSG_SIZE(mess_pm_lc_waitpid);
+} mess_pm_lc_wait4;
+_ASSERT_MSG_SIZE(mess_pm_lc_wait4);
 
 typedef struct {
 	int suid;
@@ -1559,6 +1561,24 @@ typedef struct {
 _ASSERT_MSG_SIZE(mess_pm_sched_scheduling_set_nice);
 
 typedef struct {
+	dev_t dev;
+	mode_t mode;
+	uid_t uid;
+	gid_t gid;
+	uint32_t index;
+
+	uint8_t padding[32];
+} mess_pty_ptyfs_req;
+_ASSERT_MSG_SIZE(mess_pty_ptyfs_req);
+
+typedef struct {
+	char name[20];
+
+	uint8_t padding[36];
+} mess_ptyfs_pty_name;
+_ASSERT_MSG_SIZE(mess_ptyfs_pty_name);
+
+typedef struct {
 	int status;
 
 	uint8_t padding[52];
@@ -1570,7 +1590,12 @@ typedef struct {
 	int		type;
 	cp_grant_id_t	rproctab_gid;
 	endpoint_t	old_endpoint;
-	uint8_t padding[40];
+	int		restarts;
+	int		flags;
+	vir_bytes	buff_addr;
+	size_t		buff_len;
+	int		prepare_state;
+	uint8_t padding[20];
 } mess_rs_init;
 _ASSERT_MSG_SIZE(mess_rs_init);
 
@@ -1598,7 +1623,8 @@ typedef struct {
 	endpoint_t	endpoint;
 	void		*addr;
 	const char	*name;
-	uint8_t padding[36];
+	int		subtype;
+	uint8_t padding[32];
 } mess_rs_req;
 _ASSERT_MSG_SIZE(mess_rs_req);
 
@@ -1606,7 +1632,9 @@ typedef struct {
 	int		result;
 	int		state;
 	int		prepare_maxtime;
-	uint8_t padding[44];
+	int		flags;
+	gid_t		state_data_gid;
+	uint8_t padding[36];
 } mess_rs_update;
 _ASSERT_MSG_SIZE(mess_rs_update);
 
@@ -1994,7 +2022,7 @@ typedef struct {
 } mess_vmmcp_reply;
 _ASSERT_MSG_SIZE(mess_vmmcp_reply);
 
-typedef struct {
+typedef struct noxfer_message {
 	endpoint_t m_source;		/* who sent the message */
 	int m_type;			/* what kind of message is it */
 	union {
@@ -2063,7 +2091,7 @@ typedef struct {
 		mess_lc_pm_sprof	m_lc_pm_sprof;
 		mess_lc_pm_sysuname	m_lc_pm_sysuname;
 		mess_lc_pm_time		m_lc_pm_time;
-		mess_lc_pm_waitpid	m_lc_pm_waitpid;
+		mess_lc_pm_wait4	m_lc_pm_wait4;
 		mess_lc_readclock_rtcdev m_lc_readclock_rtcdev;
 		mess_lc_svrctl		m_lc_svrctl;
 		mess_lc_vfs_chown	m_lc_vfs_chown;
@@ -2085,7 +2113,6 @@ typedef struct {
 		mess_lc_vfs_pipe2	m_lc_vfs_pipe2;
 		mess_lc_vfs_readlink	m_lc_vfs_readlink;
 		mess_lc_vfs_readwrite	m_lc_vfs_readwrite;
-		mess_lc_vfs_rusage	m_lc_vfs_rusage;
 		mess_lc_vfs_select	m_lc_vfs_select;
 		mess_lc_vfs_stat	m_lc_vfs_stat;
 		mess_lc_vfs_statvfs1	m_lc_vfs_statvfs1;
@@ -2094,7 +2121,6 @@ typedef struct {
 		mess_lc_vfs_umount	m_lc_vfs_umount;
 		mess_lc_vm_brk		m_lc_vm_brk;
 		mess_lc_vm_getphys	m_lc_vm_getphys;
-		mess_lc_vm_rusage	m_lc_vm_rusage;
 		mess_lc_vm_shm_unmap	m_lc_vm_shm_unmap;
 		mess_lchardriver_vfs_reply m_lchardriver_vfs_reply;
 		mess_lchardriver_vfs_sel1 m_lchardriver_vfs_sel1;
@@ -2151,6 +2177,7 @@ typedef struct {
 		mess_lsys_vm_info	m_lsys_vm_info;
 		mess_lsys_vm_map_phys	m_lsys_vm_map_phys;
 		mess_lsys_vm_query_exit	m_lsys_vm_query_exit;
+		mess_lsys_vm_rusage	m_lsys_vm_rusage;
 		mess_lsys_vm_unmap_phys	m_lsys_vm_unmap_phys;
 		mess_lsys_vm_update	m_lsys_vm_update;
 		mess_lsys_vm_vmremap	m_lsys_vm_vmremap;
@@ -2170,12 +2197,14 @@ typedef struct {
 		mess_pm_lc_ptrace	m_pm_lc_ptrace;
 		mess_pm_lc_sigset	m_pm_lc_sigset;
 		mess_pm_lc_time		m_pm_lc_time;
-		mess_pm_lc_waitpid	m_pm_lc_waitpid;
+		mess_pm_lc_wait4	m_pm_lc_wait4;
 		mess_pm_lexec_exec_new	m_pm_lexec_exec_new;
 		mess_pm_lsys_getepinfo	m_pm_lsys_getepinfo;
 		mess_pm_lsys_getprocnr	m_pm_lsys_getprocnr;
 		mess_pm_lsys_sigs_signal m_pm_lsys_sigs_signal;
 		mess_pm_sched_scheduling_set_nice m_pm_sched_scheduling_set_nice;
+		mess_pty_ptyfs_req	m_pty_ptyfs_req;
+		mess_ptyfs_pty_name	m_ptyfs_pty_name;
 		mess_readclock_lc_rtcdev m_readclock_lc_rtcdev;
 		mess_rs_init		m_rs_init;
 		mess_rs_pm_exec_restart	m_rs_pm_exec_restart;
@@ -2222,7 +2251,7 @@ typedef struct {
 
 		u8_t size[56];	/* message payload may have 56 bytes at most */
 	};
-} message __aligned(16);
+} message __ALIGNED(16);
 
 /* Ensure the complete union respects the IPC assumptions. */
 typedef int _ASSERT_message[/* CONSTCOND */sizeof(message) == 64 ? 1 : -1];
@@ -2323,7 +2352,7 @@ int _ipc_senda_intr(asynmsg_t *table, size_t count);
 
 int _do_kernel_call_intr(message *m_ptr);
 
-int get_minix_kerninfo(struct minix_kerninfo **);
+int ipc_minix_kerninfo(struct minix_kerninfo **);
 
 /* Hide names to avoid name space pollution. */
 #define ipc_notify	_ipc_notify

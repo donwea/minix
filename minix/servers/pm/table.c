@@ -5,7 +5,7 @@
 #define _TABLE
 
 #include "pm.h"
-#include <minix/callnr.h>
+#include </usr/src/minix/include/minix/callnr.h>
 #include <signal.h>
 #include "mproc.h"
 
@@ -14,12 +14,13 @@
 int (* const call_vec[NR_PM_CALLS])(void) = {
 	CALL(PM_EXIT)		= do_exit,		/* _exit(2) */
 	CALL(PM_FORK)		= do_fork,		/* fork(2) */
-	CALL(PM_WAITPID)	= do_waitpid,		/* waitpid(2) */
+	CALL(PM_WAIT4)		= do_wait4,		/* wait4(2) */
 	CALL(PM_GETPID)		= do_get,		/* get[p]pid(2) */
 	CALL(PM_SETUID)		= do_set,		/* setuid(2) */
 	CALL(PM_GETUID)		= do_get,		/* get[e]uid(2) */
 	CALL(PM_STIME)		= do_stime,		/* stime(2) */
 	CALL(PM_PTRACE)		= do_trace,		/* ptrace(2) */
+	CALL(PM_MYCALL)		= do_mycall,
 	CALL(PM_SETGROUPS)	= do_set,		/* setgroups(2) */
 	CALL(PM_GETGROUPS)	= do_get,		/* getgroups(2) */
 	CALL(PM_KILL)		= do_kill,		/* kill(2) */
@@ -57,5 +58,9 @@ int (* const call_vec[NR_PM_CALLS])(void) = {
 	CALL(PM_EXEC_RESTART)	= do_execrestart,
 	CALL(PM_GETEPINFO)	= do_getepinfo,		/* getepinfo(2) */
 	CALL(PM_GETPROCNR)	= do_getprocnr,		/* getprocnr(2) */
+	CALL(PM_MUTEX_INIT)	= do_mutex_init,	/* init_mutex */
+	CALL(PM_MUTEX_DESTROY)	= do_mutex_destroy,	/* mutex_dest */
+	CALL(PM_MUTEX_LOCK)	= do_mutex_lock,	/* lock mutex */
+	CALL(PM_MUTEX_UNLOCK)	= do_mutex_unlock,	/* unlock mytex */
 	CALL(PM_GETSYSINFO)	= do_getsysinfo		/* getsysinfo(2) */
 };

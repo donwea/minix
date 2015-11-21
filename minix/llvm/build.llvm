@@ -13,7 +13,6 @@ set -o errexit
 MYPWD=`pwd`
 MINIX_ROOT=
 MINIX_LLVM_DIR=
-LLVMPASS=
 LLVMARGS=
 LLVMPASS_PATHS=
 TARGET_MODULES=
@@ -21,7 +20,7 @@ MINIX_MODS=
 
 # Set default values for essential variables
 : ${GENERATE_MAP="no"}
-: ${C="servers,drivers"}
+: ${C="servers,fs,net,drivers"}
 
 function usage()
 {
@@ -98,9 +97,7 @@ function check_args()
 #Make sure we are running from the root dir of the Minix sources
 check_current_dir
 
-# set up the bridge to llvm-apps repository and initialize
 . ${MINIX_LLVM_DIR}/minix.inc
-[ ! -f ${ROOT}/apps/scripts/include/configure.llvm.inc ] || . ${ROOT}/apps/scripts/include/configure.llvm.inc
 
 # Arguments check
 check_args "$@"
@@ -120,7 +117,7 @@ if [ "${LLVMPASS_PATHS}" != "" ]; then
 	OPTFLAGS=" ${OPTFLAGS} ${LLVMPASS_PATHS} ${LLVMARGS}"
 fi
 
-TARGET_MODULES=`echo $C | sed -e "s/,/ /g"`
+TARGET_MODULES=`echo " $C " | sed -e "s/,/ /g" -e "s/ rd / ramdisk memory /g"`
 
 for m in ${TARGET_MODULES}
 do
@@ -132,7 +129,7 @@ done
 
 # Show info
 echo "Build.llvm: Executing with following parameters..."
-echo "LLVM pass		:	${LLVMPASS}"
+echo "LLVM pass		:	$@"
 echo "LLVM pass arguments	: 	${LLVMARGS}"
 echo "Target Minix modules	:	${MINIX_MODS}"
 echo "OPTFLAGS value		:	${OPTFLAGS}"
@@ -140,21 +137,26 @@ echo
 
 cd ${MINIX_ROOT}
 
+OPTFLAGS=`echo ${OPTFLAGS} | sed -e 's/\\$/$$/g'`
 for m in ${MINIX_MODS}
 do 
 	echo "Instrumenting $m ..."
+
 	n=`get_module_name $m`
 	if [ "" == "$n" ]; then
                 echo "Error: Couldn't fetch the module name for $m"
                 continue
         fi
+	if [ "$n" == "ramdisk" ] || [ "$n" == "memory" ]; then
+		(cd minix/llvm && C=$n ./relink.llvm)
+		continue
+	fi
 	clean_module $n $m
-	OPTFLAGS=`echo ${OPTFLAGS} | sed -e "s/\ /\\\ /g"`
-	OPTFLAGS_PLACEHOLDER="OPTFLAGS.$n=${OPTFLAGS}"
-	
-	(env "`echo ${OPTFLAGS_PLACEHOLDER}`" MKBITCODE=yes \
-	${TOOLDIR}/nbmake-${ARCH} -C $m all install && echo "INFO: $m successfully instrumented." ) || echo "ERROR: Failed instrumenting $m"
-	echo 
+
+	( ${TOOLDIR}/nbmake-${ARCH} -C $m all install MKBITCODE=yes OPTFLAGS="${OPTFLAGS}" \
+	    && echo "INFO: $m successfully instrumented."
+	)
+	echo
 done
 
 cd ${MYPWD}

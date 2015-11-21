@@ -108,7 +108,6 @@ CLEANFILES+= ${f:C/\.o/.bc/}
 .endif # ${USE_BITCODE:Uno} == "yes"
 .endfor
 
-CPPFLAGS.bswap64.c+=	-D_STANDALONE
 CPPFLAGS.rb.c+=		-D_LIBC
 
 .for f in \
@@ -123,7 +122,6 @@ CLEANFILES+= ${f:C/\.o/.bc/}
 .endif # ${USE_BITCODE:Uno} == "yes"
 .endfor
 
-CPPFLAGS.sha2.c+=	-D_STANDALONE
 CPPFLAGS.sha2.c+=	-I${NETBSDSRCDIR}/sys
 
 .for f in \
@@ -194,7 +192,7 @@ CLEANFILES+=	errlist.c
 .for f in \
 	_errno.o \
 	getprogname.o setprogname.o execle.o sleep.o time.o \
-	ctype_.o tolower_.o toupper_.o usleep.o sigsetops.o 
+	ctype_.o tolower_.o toupper_.o usleep.o waitpid.o sigsetops.o
 ${f} ${f:C/\.o/.bc/}:	${LIBCDIR}/gen/${f:C/\.o/.c/}
 OBJS+=	${f}
 CLEANFILES+= ${f}
@@ -211,7 +209,7 @@ CPPFLAGS.tolower_.c+= -I${LIBCDIR}/locale
 CPPFLAGS.toupper_.c+= -I${LIBCDIR}/locale
 
 .for f in \
-	waitpid.o read_tsc_64.o fslib.o itoa.o
+	read_tsc_64.o fslib.o itoa.o oneC_sum.o
 ${f} ${f:C/\.o/.bc/}:	${LIBMINIXCDIR}/gen/${f:C/\.o/.c/}
 OBJS+=	${f}
 CLEANFILES+= ${f}
@@ -250,7 +248,7 @@ CLEANFILES+= ${f:C/\.o/.bc/}
 
 .for f in \
 	abort.o atexit.o _env.o exit.o getenv.o \
-	ldiv.o malloc.o \
+	ldiv.o malloc.o setenv.o \
 	_rand48.o lrand48.o srand48.o
 ${f} ${f:C/\.o/.bc/}:	${LIBCDIR}/stdlib/${f:C/\.o/.c/}
 OBJS+=	${f}
@@ -264,6 +262,13 @@ CLEANFILES+= ${f:C/\.o/.bc/}
 # LSC FIXME: Try to get this out of the loop
 CPPFLAGS.${i}+=	-I${LIBCDIR}/stdlib
 .endfor
+
+CPPFLAGS.malloc.c+= -D_LIBSYS
+# Avoid magic instrumentation of the malloc data variables, since the heap is
+# reconstructed upon state transfer. We do need to instrument the malloc
+# functions, since we need to hook their mmap/munmap calls.
+SECTIONIFY.malloc.c+= -sectionify-no-override \
+	-sectionify-data-section-map=.*/magic_malloc_data
 
 .for f in \
 	strcspn.o
@@ -281,10 +286,10 @@ CPPFLAGS.strcspn.c+=	-D_LIBC
 .for f in \
 	access.o brk.o close.o environ.o execve.o fork.o fsync.o \
 	getgid.o getpid.o geteuid.o getuid.o gettimeofday.o getvfsstat.o \
-	init.o link.o loadname.o lseek.o _mcontext.o mknod.o \
+	init.o kernel_utils.o link.o loadname.o lseek.o _mcontext.o mknod.o \
 	mmap.o nanosleep.o open.o pread.o pwrite.o read.o sbrk.o \
 	select.o setuid.o sigprocmask.o stack_utils.o stat.o stime.o \
-	syscall.o _ucontext.o umask.o unlink.o write.o \
+	syscall.o _ucontext.o umask.o unlink.o wait4.o write.o \
 	kill.o
 ${f} ${f:C/\.o/.bc/}:	${LIBMINIXCDIR}/sys/${f:C/\.o/.c/}
 OBJS+=	${f}
@@ -296,11 +301,21 @@ CLEANFILES+= ${f:C/\.o/.bc/}
 .endif # ${USE_BITCODE:Uno} == "yes"
 .endfor
 
-CPPFLAGS.malloc.c+= -D_LIBSYS
+.for f in \
+	brksize.o _do_kernel_call_intr.o ipc_minix_kerninfo.o _ipc.o ucontext.o
+${f} ${f:C/\.o/.bc/}:	${LIBMINIXCARCHDIR}/sys/${f:C/\.o/.S/}
+OBJS+=	${f}
+CLEANFILES+= ${f}
+
+.if ${USE_BITCODE:Uno} == "yes"
+OBJS+=	${f:C/\.o/.bc/}
+CLEANFILES+= ${f:C/\.o/.bc/}
+.endif # ${USE_BITCODE:Uno} == "yes"
+.endfor
 
 .for f in \
-	brksize.o _do_kernel_call_intr.o get_minix_kerninfo.o _ipc.o ucontext.o
-${f} ${f:C/\.o/.bc/}:	${LIBMINIXCARCHDIR}/sys/${f:C/\.o/.S/}
+	localtime.o
+${f} ${f:C/\.o/.bc/}:	${LIBCDIR}/time/${f:C/\.o/.c/}
 OBJS+=	${f}
 CLEANFILES+= ${f}
 

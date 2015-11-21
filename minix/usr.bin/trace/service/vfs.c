@@ -603,6 +603,7 @@ vfs_fcntl_out(struct trace_proc * proc, const message * m_out)
 
 	switch (m_out->m_lc_vfs_fcntl.cmd) {
 	case F_DUPFD:
+	case F_DUPFD_CLOEXEC:
 		put_fd(proc, "fd2", m_out->m_lc_vfs_fcntl.arg_int);
 		break;
 	case F_SETFD:
@@ -1327,40 +1328,6 @@ vfs_fstatvfs1_out(struct trace_proc * proc, const message * m_out)
 }
 
 static int
-vfs_getrusage_out(struct trace_proc * __unused proc,
-	const message * __unused m_out)
-{
-
-	return CT_NOTDONE;
-}
-
-static void
-vfs_getrusage_in(struct trace_proc * proc, const message * m_out,
-	const message * __unused m_in, int failed)
-{
-	struct rusage buf;
-
-	/* Inline; we will certainly not be reusing this anywhere else. */
-	if (put_open_struct(proc, "rusage", failed,
-	    m_out->m_lc_vfs_rusage.addr, &buf, sizeof(buf))) {
-		/* Reason for hiding these two better: they're always zero. */
-		if (verbose > 1) {
-			put_value(proc, "ru_inblock", "%ld", buf.ru_inblock);
-			put_value(proc, "ru_oublock", "%ld", buf.ru_oublock);
-		}
-		if (verbose > 0) {
-			put_value(proc, "ru_ixrss", "%ld", buf.ru_ixrss);
-			put_value(proc, "ru_idrss", "%ld", buf.ru_idrss);
-			put_value(proc, "ru_isrss", "%ld", buf.ru_isrss);
-		}
-
-		put_close_struct(proc, verbose > 1);
-	}
-	put_equals(proc);
-	put_result(proc);
-}
-
-static int
 vfs_svrctl_out(struct trace_proc * proc, const message * m_out)
 {
 
@@ -1441,8 +1408,6 @@ static const struct call_handler vfs_map[] = {
 	    vfs_statvfs1_in),
 	VFS_CALL(FSTATVFS1) = HANDLER("fstatvfs1", vfs_fstatvfs1_out,
 	    vfs_statvfs1_in),
-	VFS_CALL(GETRUSAGE) = HANDLER("vfs_getrusage", vfs_getrusage_out,
-	    vfs_getrusage_in),
 	VFS_CALL(SVRCTL) = HANDLER("vfs_svrctl", vfs_svrctl_out,
 	    vfs_svrctl_in),
 	VFS_CALL(GCOV_FLUSH) = HANDLER("gcov_flush", vfs_gcov_flush_out,

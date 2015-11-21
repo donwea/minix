@@ -6,11 +6,11 @@
 SUBDIR= asa \
 	banner basename \
 	bzip2 bzip2recover cal calendar \
-	checknr chpass cksum col colcrt colrm \
+	checknr chpass cksum cmp col colcrt colrm \
 	column comm csplit ctags cut \
 	deroff dirname du \
 	env expand \
-	false finger fold fpr from \
+	false find finger flock fold fpr from \
 	fsplit ftp genassym getopt \
 	head hexdump id indent infocmp join jot \
 	lam last ldd leave \
@@ -21,11 +21,11 @@ SUBDIR= asa \
 	nbperf newgrp nice nl nohup \
 	passwd paste patch pathchk pr \
 	printenv printf pwhash \
-	renice rev \
+	renice rev rsh \
 	\
 	sdiff sed seq shar shlock \
 	shuffle  sort split stat su \
-	tail tee tic touch tput \
+	tail tee tic time touch tput \
 	tr true tsort tty ul uname unexpand unifdef \
 	uniq units unvis unzip users \
 	uudecode uuencode uuidgen vis \
@@ -37,7 +37,7 @@ SUBDIR= asa \
 SUBDIR+= ../external/zlib/pigz/bin/pigz
 .else
 # LSC FIXME For now we compile those unconditionnaly
-SUBDIR+= apropos whatis bdes soelim 
+SUBDIR+= apropos whatis soelim 
 .endif # defined(__MINIX)
 
 .if (${MKGROFF} == "no")
@@ -76,7 +76,7 @@ SUBDIR+= ypcat ypmatch ypwhich
 
 .if (${MKCRYPTO} != "no")
 SUBDIR+= bdes
-SUBDIR+= nbsvtool
+#SUBDIR+= nbsvtool
 .endif
 
 .include <bsd.subdir.mk>

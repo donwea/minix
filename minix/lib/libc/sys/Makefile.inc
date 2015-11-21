@@ -12,20 +12,21 @@ SRCS+= 	accept.c access.c adjtime.c bind.c brk.c sbrk.c m_closefrom.c getsid.c \
 	getvfsstat.c \
 	ioctl.c issetugid.c kill.c link.c listen.c loadname.c lseek.c \
 	minix_rs.c mkdir.c mkfifo.c mknod.c mmap.c mount.c nanosleep.c \
-	open.c pathconf.c pipe.c poll.c pread.c ptrace.c pwrite.c \
+	open.c pathconf.c pipe.c poll.c posix_spawn.c pread.c ptrace.c pwrite.c \
 	read.c readlink.c reboot.c recvfrom.c recvmsg.c rename.c \
 	rmdir.c select.c sem.c sendmsg.c sendto.c setgroups.c setsid.c \
 	setgid.c settimeofday.c setuid.c shmat.c shmctl.c shmget.c stime.c \
 	vectorio.c shutdown.c sigaction.c sigpending.c sigreturn.c sigsuspend.c\
 	sigprocmask.c socket.c socketpair.c stat.c statvfs.c svrctl.c \
 	symlink.c \
-	sync.c syscall.c sysuname.c truncate.c umask.c unlink.c write.c \
+	sync.c syscall.c sysuname.c truncate.c umask.c unlink.c \
+	wait4.c write.c \
 	utimensat.c utimes.c futimes.c lutimes.c futimens.c \
 	_exit.c _ucontext.c environ.c __getcwd.c vfork.c sizeup.c init.c \
 	getrusage.c setrlimit.c setpgid.c
 
 # Minix specific syscalls / utils.
-SRCS+= sprofile.c stack_utils.c _mcontext.c
+SRCS+= kernel_utils.c sprofile.c stack_utils.c _mcontext.c
 
 # Emulation for missing lchown/lchmod
 OBJS+= lchown.o lchmod.o

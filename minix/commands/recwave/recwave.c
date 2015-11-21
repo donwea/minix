@@ -80,8 +80,7 @@ void usage()
   exit(-1);
 }
 
-void terminate(s)
-int s;
+void terminate(int s)
 {
   /* Restore terminal parameters */
   tcsetattr(0, TCSANOW, &old_tty);
@@ -123,9 +122,7 @@ void write_wave_header()
 }
 
 
-int main(argc, argv)
-int argc;
-char **argv;
+int main(int argc, char* argv[])
 {
   unsigned int fragment_size;
   char *buffer, *file_name;
@@ -136,7 +133,7 @@ char **argv;
   if (argc < 2) usage();
 
   i = 1;
-  while (argv[i][0] == '-' && i < argc)
+  while ((i < argc) && (argv[i][0] == '-'))
   {
     if (strncmp(argv[i], "-b", 2) == 0)
       bits = atoi(argv[i] + 2);
